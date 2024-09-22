@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(MyApp());
@@ -58,15 +59,24 @@ class _QRViewExampleState extends State<QRViewExample> {
                 borderWidth: 10,
                 cutOutSize: MediaQuery.of(context).size.width * 0.8,
               ),
+              formatsAllowed: [BarcodeFormat.qrcode],
             ),
           ),
           Expanded(
             flex: 1,
             child: Center(
               child: (scannedData != null)
-                  ? Text(
-                      'Scanned Data: $scannedData',
-                      style: TextStyle(fontSize: 18),
+                  ? GestureDetector(
+                      onTap: () => _launchURL(scannedData!),
+                      child: Text(
+                        '$scannedData\nClick to Open',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     )
                   : Text('Scan a QR code'),
             ),
@@ -106,12 +116,35 @@ class _QRViewExampleState extends State<QRViewExample> {
     setState(() {
       this.controller = controller;
     });
-    controller.scannedDataStream.listen((scanData) {
-      setState(() {
-        scannedData = scanData.code;
-      });
-    });
+   controller.scannedDataStream.listen((scanData) {
+  setState(() {
+    scannedData = scanData.code;
+    print('Scanned Data: $scannedData');
+  });
+});
+
   }
+
+Future<void> _launchURL(String url) async {
+  try {
+    // Add scheme if missing
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+
+    final Uri uri = Uri.parse(url);
+    print('Attempting to launch: $uri');
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      print('Launched successfully!');
+    } else {
+      print('Could not launch $url');
+    }
+  } catch (e) {
+    print('Error launching URL: $e');
+  }
+}
 
   @override
   void dispose() {
